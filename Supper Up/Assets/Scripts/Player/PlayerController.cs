@@ -8,6 +8,13 @@ public class PlayerController : MonoBehaviour
     public float jumpForce = 5.0f;
     public float rotationSpeed = 10f;     //회전속도
 
+    private float rotateTimer = 0;
+    public float rotateTime = 3f;
+    public float rotateDegree = 30;
+    private bool isRotate = false;
+    Quaternion toRoation = Quaternion.identity;
+    private float moveDegree = 0;
+
     //카메라 설정 변수
     [Header("Camera Settings")]
     public Camera thirdPersonCamera;      //3인칭
@@ -21,16 +28,11 @@ public class PlayerController : MonoBehaviour
     public float mouseSenesitivity = 100.0f;
 
     private const float Y_ANGLE_MIN = 0.0f;
-    private const float Y_ANGLE_MAX = 100.0f;
+    private const float Y_ANGLE_MAX = 85.0f;
 
     public float radius = 5.0f;          //3인칭 카메라와 플레이어 간의 거리
     public float minRadius = 1.0f;       //카메라 최소 거리
     public float maxRadius = 10.0f;      //카메라 최대 거리
-
-
-    public float yMinLimit = 30;         //카메라 수직 회전 최소각
-    public float yMaxLimit = 90;         //카메라 수직 회전 최대각
-
 
     //내부 변수들
     private Rigidbody rb;
@@ -51,12 +53,16 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        HandleRotation();
-
+        HandleCameraRotation();
         if (Input.GetKeyDown(KeyCode.Space))
         {
             HandleJump();
         }
+    }
+
+    private void LateUpdate()
+    {
+        HandleCharacterRotation();
     }
 
     private void FixedUpdate()
@@ -65,7 +71,7 @@ public class PlayerController : MonoBehaviour
     }
 
     //카메라 및 캐릭터 회전처리하는 함수
-    public void HandleRotation()
+    public void HandleCameraRotation()
     {
         float mouseX = Input.GetAxis("Mouse X") * mouseSenesitivity * Time.deltaTime;   //마우스 좌우 입력
         float mouseY = Input.GetAxis("Mouse Y") * mouseSenesitivity * Time.deltaTime;   //마우스 상하 입력
@@ -82,9 +88,37 @@ public class PlayerController : MonoBehaviour
         Quaternion rotation = Quaternion.Euler(CurrentY, CurrentX, 0.0f);
         thirdPersonCamera.transform.position = transform.position + rotation * dir;
         thirdPersonCamera.transform.LookAt(transform.position);
+    }
+    public void HandleCharacterRotation()
+    {
+        Vector3 cameraForward = thirdPersonCamera.transform.forward; //카메라 앞 방향
+        cameraForward.y = 0f;  //수직 방향 제거
+        cameraForward.Normalize();  //방향 백터 정규화(0~1) 사이의 값으로 만들어준다.
 
-        //줌처리
-        cameraDistance = Mathf.Clamp(cameraDistance - Input.GetAxis("Mouse ScrollWheel") * 5, minDistance, maxDistance);
+        if (moveDegree > 0.1)
+        {
+            toRoation = Quaternion.LookRotation(cameraForward, Vector2.up);
+            transform.rotation = Quaternion.Slerp(transform.rotation, toRoation, rotationSpeed * Time.deltaTime);
+        }
+
+        //회전처리를 할 각도구하기
+        float dot = Vector3.Dot(transform.forward, cameraForward);
+        float angle = Mathf.Acos(dot) * Mathf.Rad2Deg;
+
+        //n초후에 카메라방향으로 회전
+        if (angle >= rotateDegree)
+        {
+            rotateTimer += Time.deltaTime;
+            if (rotateTimer > rotateTime)
+            {
+                toRoation = Quaternion.LookRotation(cameraForward, Vector2.up);
+                isRotate = true;
+                rotateTimer = 0;
+            }
+        }
+        if (isRotate) transform.rotation = Quaternion.Slerp(transform.rotation, toRoation, rotationSpeed * Time.deltaTime);
+        if (Mathf.Lerp(0, 1, rotationSpeed * Time.deltaTime) >= 1) isRotate = false;
+
     }
 
     //플레이어 점프를 처리하는 함수
@@ -102,26 +136,9 @@ public class PlayerController : MonoBehaviour
     {
         float moveHorizontal = Input.GetAxis("Horizontal");         //좌우 입력(1, -1)
         float moveVertical = Input.GetAxis("Vertical");             //앞뒤 입력(1, -1)
-
-        Vector3 movement;
-
-        Vector3 cameraForward = thirdPersonCamera.transform.forward; //카메라 앞 방향
-        cameraForward.y = 0f;  //수직 방향 제거
-        cameraForward.Normalize();  //방향 백터 정규화(0~1) 사이의 값으로 만들어준다.
-
-        Vector3 cameraRight = thirdPersonCamera.transform.right;   //카메라 오른쪽 방향
-        cameraRight.y = 0f;
-        cameraRight.Normalize();
-
         //이동 백터 계산
-        movement = cameraForward * moveVertical + cameraRight * moveHorizontal;
-
-        //이동방향으로 캐릭터 회전
-        if (movement.magnitude > 0.1f)
-        {
-            Quaternion toRoation = Quaternion.LookRotation(movement, Vector2.up);
-            transform.rotation = Quaternion.Slerp(transform.rotation, toRoation, rotationSpeed * Time.deltaTime);
-        }
+        Vector3 movement = (transform.forward * moveVertical + transform.right * moveHorizontal).normalized;
+        moveDegree = movement.magnitude;
         rb.MovePosition(rb.position + movement * moveSpeed * Time.deltaTime);
     }
 
@@ -138,6 +155,19 @@ public class PlayerController : MonoBehaviour
     public float GetVerticalVelocity()  //플레이어 y축 속도확인
     {
         return rb.velocity.y;
+    }
+
+    private void OnDrawGizmos()
+    {
+        Vector3 cameraForward = thirdPersonCamera.transform.forward; //카메라 앞 방향
+        cameraForward.y = 0f;  //수직 방향 제거
+        cameraForward.Normalize();  //방향 백터 정규화(0~1) 사이의 값으로 만들어준다.
+
+        Gizmos.color = Color.yellow;
+        Debug.DrawRay(transform.position, cameraForward);
+
+        Gizmos.color = Color.red;
+        Debug.DrawRay(transform.position, transform.forward);
     }
 
 }
