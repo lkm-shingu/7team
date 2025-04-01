@@ -1,4 +1,5 @@
 using UnityEngine;
+using static UnityEngine.Rendering.DebugUI;
 
 public class PlayerController : MonoBehaviour
 {
@@ -14,6 +15,10 @@ public class PlayerController : MonoBehaviour
     private bool isRotate = false;
     Quaternion toRoation = Quaternion.identity;
     private float moveDegree = 0;
+    //애니메이션
+    private Animator playerAnimator;
+    private bool isSmoothing = false;
+    float temp = 0;
 
     //카메라 설정 변수
     [Header("Camera Settings")]
@@ -46,6 +51,7 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody>();
+        playerAnimator = GetComponent<Animator>();
 
         Cursor.lockState = CursorLockMode.Locked;          //마우스 커서를 잠그고 숨긴다
         thirdPersonCamera.gameObject.SetActive(true);  //3인칭카메라 활성화
@@ -122,12 +128,12 @@ public class PlayerController : MonoBehaviour
     }
 
     //플레이어 점프를 처리하는 함수
-
     public void HandleJump()
     {
         //접프 버튼을 누르고 땅에 있을 때
         if (IsGrounded())
         {
+            Debug.Log("점프한다");
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);          //위쪽으로 힘을 가해 점프
         }
     }
@@ -136,10 +142,36 @@ public class PlayerController : MonoBehaviour
     {
         float moveHorizontal = Input.GetAxis("Horizontal");         //좌우 입력(1, -1)
         float moveVertical = Input.GetAxis("Vertical");             //앞뒤 입력(1, -1)
+
+        //애니메이션
+        playerAnimator.SetFloat("FMove", smoothValue(moveVertical));
+        playerAnimator.SetFloat("RMove", smoothValue(moveHorizontal));
+
         //이동 백터 계산
         Vector3 movement = (transform.forward * moveVertical + transform.right * moveHorizontal).normalized;
         moveDegree = movement.magnitude;
         rb.MovePosition(rb.position + movement * moveSpeed * Time.deltaTime);
+    }
+    private float smoothValue(float value)
+    {
+        if (temp * value < 0)
+        {
+            isSmoothing = true;
+        }
+        else
+        {
+            isSmoothing = false;
+        }
+        if (isSmoothing)
+        {
+            Debug.Log("된다");
+            return Mathf.Lerp(temp, value, Time.deltaTime * 10f);
+        }
+        else
+        {
+            temp = value;
+        }
+        return value;
     }
 
     public bool isFalling()
@@ -149,7 +181,9 @@ public class PlayerController : MonoBehaviour
 
     public bool IsGrounded()
     {
-        return Physics.Raycast(transform.position, Vector3.down, 2.0f);
+        Vector3 temp = transform.position;
+        temp.y += 1;
+        return Physics.Raycast(temp, Vector3.down, 1f);
     }
 
     public float GetVerticalVelocity()  //플레이어 y축 속도확인
