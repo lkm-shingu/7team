@@ -12,13 +12,11 @@ public class PlayerController : MonoBehaviour
     private float rotateTimer = 0;
     public float rotateTime = 3f;
     public float rotateDegree = 30;
-    private bool isRotate = false;
     Quaternion toRoation = Quaternion.identity;
     private float moveDegree = 0;
     //애니메이션
     private Animator playerAnimator;
-    private bool isSmoothing = false;
-    float temp = 0;
+    private float isRotateValue = 0;
 
     //카메라 설정 변수
     [Header("Camera Settings")]
@@ -118,12 +116,25 @@ public class PlayerController : MonoBehaviour
             if (rotateTimer > rotateTime)
             {
                 toRoation = Quaternion.LookRotation(cameraForward, Vector2.up);
-                isRotate = true;
                 rotateTimer = 0;
+                isRotateValue = 1;
+                Vector3 left = - transform.right;
+                float temp = Vector3.Angle(cameraForward, left);
+                if (temp <= 90)
+                {
+                    playerAnimator.SetTrigger("Lturn");
+                }
+                else if(temp <= 180)
+                {
+                    playerAnimator.SetTrigger("Rturn");
+                }
             }
         }
-        if (isRotate) transform.rotation = Quaternion.Slerp(transform.rotation, toRoation, rotationSpeed * Time.deltaTime);
-        if (Mathf.Lerp(0, 1, rotationSpeed * Time.deltaTime) >= 1) isRotate = false;
+        transform.rotation = Quaternion.Slerp(transform.rotation, toRoation, rotationSpeed * Time.deltaTime);
+
+        if (isRotateValue > 0) isRotateValue += rotationSpeed * Time.deltaTime;
+
+        Debug.Log(rb.velocity.x);
 
     }
 
@@ -133,7 +144,7 @@ public class PlayerController : MonoBehaviour
         //접프 버튼을 누르고 땅에 있을 때
         if (IsGrounded())
         {
-            Debug.Log("점프한다");
+            playerAnimator.SetBool("IsJumping", true);
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);          //위쪽으로 힘을 가해 점프
         }
     }
@@ -144,34 +155,13 @@ public class PlayerController : MonoBehaviour
         float moveVertical = Input.GetAxis("Vertical");             //앞뒤 입력(1, -1)
 
         //애니메이션
-        playerAnimator.SetFloat("FMove", smoothValue(moveVertical));
-        playerAnimator.SetFloat("RMove", smoothValue(moveHorizontal));
+        playerAnimator.SetFloat("FMove", moveVertical);
+        playerAnimator.SetFloat("RMove", moveHorizontal);
 
         //이동 백터 계산
         Vector3 movement = (transform.forward * moveVertical + transform.right * moveHorizontal).normalized;
         moveDegree = movement.magnitude;
         rb.MovePosition(rb.position + movement * moveSpeed * Time.deltaTime);
-    }
-    private float smoothValue(float value)
-    {
-        if (temp * value < 0)
-        {
-            isSmoothing = true;
-        }
-        else
-        {
-            isSmoothing = false;
-        }
-        if (isSmoothing)
-        {
-            Debug.Log("된다");
-            return Mathf.Lerp(temp, value, Time.deltaTime * 10f);
-        }
-        else
-        {
-            temp = value;
-        }
-        return value;
     }
 
     public bool isFalling()
