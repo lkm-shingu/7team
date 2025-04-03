@@ -1,5 +1,4 @@
 using UnityEngine;
-using static UnityEngine.Rendering.DebugUI;
 
 public class PlayerController : MonoBehaviour
 {
@@ -8,7 +7,12 @@ public class PlayerController : MonoBehaviour
     public float moveSpeed = 5.0f;
     public float jumpForce = 5.0f;
     public float rotationSpeed = 10f;     //회전속도
+    //달리기 속도 증가변수
+    private float velocity = 1;
+    private float max_velocity = 3f;
+    private float speedTimer = 0;
 
+    //제자리 회전변수
     private float rotateTimer = 0;
     public float rotateTime = 3f;
     public float rotateDegree = 30;
@@ -110,7 +114,7 @@ public class PlayerController : MonoBehaviour
         float angle = Mathf.Acos(dot) * Mathf.Rad2Deg;
 
         //n초후에 카메라방향으로 회전
-        if (angle >= rotateDegree)
+        if (angle >= rotateDegree&& moveDegree < 0.1)
         {
             rotateTimer += Time.deltaTime;
             if (rotateTimer > rotateTime)
@@ -133,9 +137,6 @@ public class PlayerController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, toRoation, rotationSpeed * Time.deltaTime);
 
         if (isRotateValue > 0) isRotateValue += rotationSpeed * Time.deltaTime;
-
-        Debug.Log(rb.velocity.x);
-
     }
 
     //플레이어 점프를 처리하는 함수
@@ -154,14 +155,29 @@ public class PlayerController : MonoBehaviour
         float moveHorizontal = Input.GetAxis("Horizontal");         //좌우 입력(1, -1)
         float moveVertical = Input.GetAxis("Vertical");             //앞뒤 입력(1, -1)
 
+        if(moveVertical > 0.95 || moveVertical < -0.95)
+        {
+            if (speedTimer <= max_velocity)
+            {
+                speedTimer += Time.deltaTime;
+            }
+            velocity = speedTimer;
+        }
+        else
+        {
+            speedTimer = 0;
+            velocity = speedTimer;
+        }
+        velocity = Mathf.Clamp(velocity, 1, max_velocity);
+        Debug.Log(velocity);
         //애니메이션
-        playerAnimator.SetFloat("FMove", moveVertical);
+        playerAnimator.SetFloat("FMove", moveVertical * velocity);
         playerAnimator.SetFloat("RMove", moveHorizontal);
 
         //이동 백터 계산
         Vector3 movement = (transform.forward * moveVertical + transform.right * moveHorizontal).normalized;
         moveDegree = movement.magnitude;
-        rb.MovePosition(rb.position + movement * moveSpeed * Time.deltaTime);
+        rb.MovePosition(rb.position + movement * (moveSpeed + velocity) * Time.deltaTime);
     }
 
     public bool isFalling()
