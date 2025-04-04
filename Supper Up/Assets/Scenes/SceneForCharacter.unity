@@ -203,7 +203,7 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 7c1ae2f0ce9f80d46bded570846c9227,
         type: 3}
       propertyPath: m_Name
-      value: Y Bot
+      value: Player
       objectReference: {fileID: 0}
     - target: {fileID: 5866666021909216657, guid: 7c1ae2f0ce9f80d46bded570846c9227,
         type: 3}
@@ -231,6 +231,10 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 933159671}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7c1ae2f0ce9f80d46bded570846c9227,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 933159676}
   m_SourcePrefab: {fileID: 100100000, guid: 7c1ae2f0ce9f80d46bded570846c9227, type: 3}
 --- !u!1 &330585543
 GameObject:
@@ -244,6 +248,7 @@ GameObject:
   - component: {fileID: 330585545}
   - component: {fileID: 330585544}
   - component: {fileID: 330585547}
+  - component: {fileID: 330585548}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -369,6 +374,22 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
+--- !u!114 &330585548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c6305d56a0873e42bb8226d6612a0a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player: {fileID: 933159670}
+  cameraDistance: 7
+  mouseSenesitivity: 100
+  radius: 5
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -637,7 +658,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.1315743, y: 1.1315743, z: 1.1315743}
+  m_LocalScale: {x: 5.6063313, y: 5.6063313, z: 5.6063313}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -660,22 +681,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6938bfa57bc9a434aa6a5e96042386d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 5
-  jumpForce: 5
-  rotationSpeed: 10
-  rotateTime: 3.2
-  rotateDegree: 40
   thirdPersonCamera: {fileID: 330585545}
-  cameraDistance: 7
-  minDistance: 1
-  maxDistance: 10
-  mouseSenesitivity: 400
-  radius: 5
-  minRadius: 1
-  maxRadius: 10
-  fallingThrexhold: -0.1
-  groundCheckDistance: 0.3
-  slopedLimit: 45
+  movementController: {fileID: 933159676}
 --- !u!54 &933159672
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -726,6 +733,29 @@ CapsuleCollider:
   m_Height: 1.8
   m_Direction: 1
   m_Center: {x: 0, y: 0.91, z: -0.003867241}
+--- !u!114 &933159676
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 933159670}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a56bb6625907d543ad857915aa4523d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  thirdPersonCamera: {fileID: 330585545}
+  moveSpeed: 5
+  jumpForce: 5
+  rotationSpeed: 10
+  velocity: 1
+  rotateTime: 3
+  rotateDegree: 30
+  onRotate: 0
+  fallingThrexhold: -0.1
+  groundCheckDistance: 0.3
+  slopedLimit: 45
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
