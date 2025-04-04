@@ -15,11 +15,14 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;          //마우스 커서를 잠그고 숨긴다
+        StartCoroutine(movementController.Falling());
     }
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space)) movementController.Jump();
+        if (Input.GetKeyDown(KeyCode.Space)) movementController.Jumping();
+
+        movementController.Landing();
 
         movementController.Rotate();
     }
@@ -54,6 +57,9 @@ public class PlayerController : MonoBehaviour
 
         Gizmos.color = Color.red;
         Debug.DrawRay(transform.position, transform.forward);
+
+        Gizmos.color = Color.red;
+        Debug.DrawRay(transform.position, Vector3.down * 2f);
     }
 
 }

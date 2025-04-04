@@ -49,13 +49,25 @@ public class MovementController : MonoBehaviour
     public void Move(float moveVertical, float moveHorizontal, Vector3 movement)
     {
         moveVector = movement;
+
+        if (!IsGrounded())
+        {
+            Debug.Log("작동한다.");
+            min_velocity = 0.3f;
+            velocity = 0.3f;
+        }
+        else
+        {
+            min_velocity = 1;
+            velocity = 1;
+        }
+
         AdjustSpeed(moveVertical);
         //애니메이션
         playerAnimator.SetFloat("FMove", moveVertical * velocity);
         playerAnimator.SetFloat("RMove", moveHorizontal);
 
         moveDegree = movement.magnitude;
-
         rb.MovePosition(rb.position + movement * (moveSpeed + velocity) * Time.deltaTime);
     }
 
@@ -103,7 +115,6 @@ public class MovementController : MonoBehaviour
 
     public void RotateDiagonal(float moveHorizontal, float moveVertical, Vector3 movement)
     {
-        Debug.Log(onRotate);
         if (!onRotate)
         {
             if (velocity < 1.5 || Mathf.Abs(moveHorizontal) < 0.3f) return;
@@ -115,7 +126,7 @@ public class MovementController : MonoBehaviour
         else if(Mathf.Abs(moveHorizontal) < 0.3f) onRotate = false;
     }
 
-    public void Jump()
+    public void Jumping()
     {
         if (IsGrounded())
         {
@@ -125,49 +136,65 @@ public class MovementController : MonoBehaviour
         }
     }
 
-    public void NotGroundAction()
+
+    public IEnumerator Falling()
     {
-        if (!isJumping) return;
-        if (CheckDistance() > 3f)
+        while (true)
         {
-            playerAnimator.SetBool("IsFalling", true);
-            isFalling = true;
+            if (CheckDistance() > 40f && !isFalling)
+            {
+                //playerAnimator.SetBool("IsSupperLanding", false);
+                yield return new WaitForSeconds(1f);
+                playerAnimator.SetBool("IsFalling", true);
+                isFalling = true;
+            }
+            yield return null;
         }
-        else
+    }
+    public void Landing()
+    {
+        Debug.Log(CheckDistance());
+        if (CheckDistance() < 40f)
         {
+            playerAnimator.SetBool("IsFalling", false);
+
             if (isFalling)
             {
-                playerAnimator.SetBool("IsFalling", false);
+                playerAnimator.SetBool("IsSupperLanding", true);
                 isFalling = false;
+                StartCoroutine(ResetValue());
             }
-            else
+        }
+
+
+        if (CheckDistance() < 1.2f)
+        {
+            if(isJumping)
             {
-                playerAnimator.SetBool("IsJumping", false);
+                StartCoroutine(ResetValue());
             }
         }
     }
-    private IEnumerator ResetValues()
+    private IEnumerator ResetValue()
     {
         isJumping = false;
         yield return new WaitForSeconds(1f);
         playerAnimator.SetBool("IsJumping", false);
-        playerAnimator.SetBool("IsFalling", false);
-    }
-
-    public bool IsFalling()
-    {
-        return rb.velocity.y < fallingThrexhold && IsGrounded();
     }
 
     private float CheckDistance()
     {
         RaycastHit hit;
-        if (Physics.Raycast(transform.position, Vector3.down, out hit)) return hit.distance;
+        Vector3 temp = transform.position;
+        temp.y += 1f;
+        if (Physics.Raycast(temp, Vector3.down, out hit)) return hit.distance;
         return 10f;
     }
 
     public bool IsGrounded()
     {
-        return Physics.Raycast(transform.position, Vector3.down, 2f);
+        Vector3 temp = transform.position;
+        temp.y += 1f;
+        return Physics.SphereCast(temp, 0.1f, Vector3.down, out RaycastHit hit, 0.9f);
     }
 }
