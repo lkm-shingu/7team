@@ -13,10 +13,12 @@ public class MovementController : MonoBehaviour
     public float jumpForce = 5.0f;
     public float rotationSpeed = 10f;     //회전속도
     private Vector3 moveVector;
+    private float currentSpeed = 0;
+    private float currentRotateSpeed = 0;
 
     [Header("Player Rotation")]
     public float velocity = 1;
-    private float max_velocity = 3f;
+    public float max_velocity = 3f;
     private float min_velocity = 1f;
     private float speedTimer = 0;
     //제자리 회전변수
@@ -43,6 +45,8 @@ public class MovementController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         playerAnimator = GetComponent<Animator>();
+        currentSpeed = moveSpeed;
+        currentRotateSpeed = rotationSpeed;
     }
 
 
@@ -50,17 +54,8 @@ public class MovementController : MonoBehaviour
     {
         moveVector = movement;
 
-        if (!IsGrounded())
-        {
-            Debug.Log("작동한다.");
-            min_velocity = 0.3f;
-            velocity = 0.3f;
-        }
-        else
-        {
-            min_velocity = 1;
-            velocity = 1;
-        }
+        if (!IsGrounded()) moveSpeed = 0.3f;
+        else moveSpeed = currentSpeed;
 
         AdjustSpeed(moveVertical);
         //애니메이션
@@ -68,7 +63,7 @@ public class MovementController : MonoBehaviour
         playerAnimator.SetFloat("RMove", moveHorizontal);
 
         moveDegree = movement.magnitude;
-        rb.MovePosition(rb.position + movement * (moveSpeed + velocity) * Time.deltaTime);
+        rb.MovePosition(rb.position + movement * (moveSpeed * velocity) * Time.deltaTime);
     }
 
     //시간이 흐름에 따라 속도를 올려주는 코드
@@ -90,8 +85,12 @@ public class MovementController : MonoBehaviour
         Vector3 cameraForward = thirdPersonCamera.transform.forward;
         cameraForward.y = 0f;
         cameraForward.Normalize();
-
-        if (moveDegree > 0.1 && !onRotate) toRoation = Quaternion.LookRotation(cameraForward, Vector2.up); //카메라에 따라서 캐릭터회전
+        
+        if (moveDegree > 0.1 && !onRotate)                               //카메라에 따라서 캐릭터회전
+        {
+            toRoation = Quaternion.LookRotation(cameraForward, Vector2.up);
+            rotationSpeed = currentRotateSpeed * 5f;
+        }
 
         float dot = Vector3.Dot(transform.forward, cameraForward);               //회전처리를 할 각구하기
         float angle = Mathf.Acos(dot) * Mathf.Rad2Deg;
@@ -102,6 +101,8 @@ public class MovementController : MonoBehaviour
             if (rotateTimer > rotateTime)
             {
                 toRoation = Quaternion.LookRotation(cameraForward, Vector2.up);
+                rotationSpeed = currentRotateSpeed / (angle / 90);
+                Debug.Log(rotationSpeed);
                 rotateTimer = 0;
                 Vector3 left = -transform.right;
                 float temp = Vector3.Angle(cameraForward, left);
@@ -117,13 +118,18 @@ public class MovementController : MonoBehaviour
     {
         if (!onRotate)
         {
-            if (velocity < 1.5 || Mathf.Abs(moveHorizontal) < 0.3f) return;
+            if (velocity < 1.5 || Mathf.Abs(moveHorizontal) < 0.3f || Mathf.Abs(moveVertical) < 0.9f) return;
             Vector3 temp = movement;
             if (moveVertical < -0.9f) temp = -temp;
             toRoation = Quaternion.LookRotation(temp, Vector2.up);
+            rotationSpeed = currentRotateSpeed;
             onRotate = true;
         }
-        else if(Mathf.Abs(moveHorizontal) < 0.3f) onRotate = false;
+        else
+        {
+            if (Mathf.Abs(moveHorizontal) > 0.9f && Mathf.Abs(moveVertical) > 0.3f) return;
+            onRotate = false;
+        }
     }
 
     public void Jumping()
@@ -132,18 +138,16 @@ public class MovementController : MonoBehaviour
         {
             playerAnimator.SetBool("IsJumping", true);
             isJumping = true;
-            rb.AddForce(Vector3.up * jumpForce + moveVector * velocity * 3.5f, ForceMode.Impulse);          //위쪽으로 힘을 가해 점프
+            rb.AddForce(Vector3.up * jumpForce + moveVector * velocity * 2.5f, ForceMode.Impulse);          //위쪽으로 힘을 가해 점프
         }
     }
-
 
     public IEnumerator Falling()
     {
         while (true)
         {
-            if (CheckDistance() > 40f && !isFalling)
+            if (CheckDistance() > 30f && !isFalling)
             {
-                //playerAnimator.SetBool("IsSupperLanding", false);
                 yield return new WaitForSeconds(1f);
                 playerAnimator.SetBool("IsFalling", true);
                 isFalling = true;
@@ -153,19 +157,21 @@ public class MovementController : MonoBehaviour
     }
     public void Landing()
     {
-        Debug.Log(CheckDistance());
-        if (CheckDistance() < 40f)
+        if (CheckDistance() < 2.2f)
         {
             playerAnimator.SetBool("IsFalling", false);
 
             if (isFalling)
             {
                 playerAnimator.SetBool("IsSupperLanding", true);
+
+                float fallingSpeed = Mathf.Abs(rb.velocity.y);
+                playerAnimator.SetFloat("LandSpeed", Mathf.Clamp(fallingSpeed / 10, 0.8f, 2));
+
                 isFalling = false;
                 StartCoroutine(ResetValue());
             }
         }
-
 
         if (CheckDistance() < 1.2f)
         {
@@ -179,6 +185,7 @@ public class MovementController : MonoBehaviour
     {
         isJumping = false;
         yield return new WaitForSeconds(1f);
+        playerAnimator.SetBool("IsSupperLanding", false);
         playerAnimator.SetBool("IsJumping", false);
     }
 
